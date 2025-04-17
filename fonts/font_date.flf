@@ -2,7 +2,7 @@ flf2a$ 4 4 4 0 5 0 1 0
 
    ▘  ▘   ▘ miniwi font
 ▛▛▌▌▛▌▌▌▌▌▌ after the miniwi bitmap font
-▌▌▌▌▌▌▌▚▚▘▌
+▌▌▌▌▌▌▌▚▚▘▌ gjogre modified and made figlet-rs compatible (original one is not)
 
 $  $@
 $  $@
@@ -72,9 +72,9 @@ $  $@@
 ▛▌@
 █▌@
   @@
-▗ @
-▜ @
-▟▖@
+ ▖@
+ ▌@
+ ▌@
   @@
 ▄▖@
 ▄▌@
