@@ -1,0 +1,9 @@
+# Clockdate widget configuration
+
+[colors]
+# Time color - uses terminal's color palette
+# Available: Black, Red, Green, Yellow, Blue, Magenta, Cyan, Gray, DarkGray, LightRed, LightGreen, LightYellow, LightBlue, LightMagenta, LightCyan, White
+time = "Blue"
+
+# Date color - should be dimmer than time for visual hierarchy
+date = "DarkGray"
