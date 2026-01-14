@@ -99,9 +99,22 @@ fn build_ui(app: &Application) {
     drawing_area.set_content_width(config.window.width);
     drawing_area.set_content_height(config.window.height);
 
-    // Shared state for rendering
-    let time_text = Rc::new(RefCell::new(String::new()));
-    let date_text = Rc::new(RefCell::new(String::new()));
+    // Parse colors once at startup
+    let time_color = config::parse_color(&config.colors.time);
+    let date_color = config::parse_color(&config.colors.date);
+    let (tr, tg, tb) = color_to_rgb(time_color);
+    let (dr, dg, db) = color_to_rgb(date_color);
+
+    // Render initial figlet text
+    let now = Local::now();
+    let init_time_str = now.format("%H:%M").to_string();
+    let init_date_str = now.format("%d.%m.%Y").to_string();
+    let initial_time = font::render_figlet_text(&font_time, &init_time_str);
+    let initial_date = font::render_figlet_text(&font_date, &init_date_str);
+
+    // Shared state for rendering (figlet output)
+    let time_text = Rc::new(RefCell::new(initial_time.to_string()));
+    let date_text = Rc::new(RefCell::new(initial_date.to_string()));
 
     // Set up draw function
     let config_clone = Rc::clone(&config);
@@ -117,14 +130,6 @@ fn build_ui(app: &Application) {
 
         // Set source to transparent
         cr.set_source_rgba(0.0, 0.0, 0.0, 0.0);
-
-        // Parse colors
-        let time_color = config::parse_color(&config_clone.colors.time);
-        let date_color = config::parse_color(&config_clone.colors.date);
-
-        // Convert ratatui color to RGB
-        let (tr, tg, tb) = color_to_rgb(time_color);
-        let (dr, dg, db) = color_to_rgb(date_color);
 
         // Get figlet text
         let time_figlet = time_text_clone.borrow();
@@ -172,23 +177,41 @@ fn build_ui(app: &Application) {
 
     window.set_child(Some(&drawing_area));
 
-    // Update time every 250ms
+    // Cache for last displayed time/date to avoid unnecessary redraws
+    let now = Local::now();
+    let last_time_str = Rc::new(RefCell::new(now.format("%H:%M").to_string()));
+    let last_date_str = Rc::new(RefCell::new(now.format("%d.%m.%Y").to_string()));
+
+    // Update time every second (only redraws when display actually changes)
     let drawing_area_clone = drawing_area.clone();
     let time_text_update = Rc::clone(&time_text);
     let date_text_update = Rc::clone(&date_text);
 
-    glib::timeout_add_local(std::time::Duration::from_millis(250), move || {
+    glib::timeout_add_local(std::time::Duration::from_millis(1000), move || {
         let now = Local::now();
         let time_str = now.format("%H:%M").to_string();
         let date_str = now.format("%d.%m.%Y").to_string();
 
-        let time_figlet = font::render_figlet_text(&font_time, &time_str);
-        let date_figlet = font::render_figlet_text(&font_date, &date_str);
+        // Only update and redraw if something actually changed
+        let time_changed = *last_time_str.borrow() != time_str;
+        let date_changed = *last_date_str.borrow() != date_str;
 
-        *time_text_update.borrow_mut() = time_figlet.to_string();
-        *date_text_update.borrow_mut() = date_figlet.to_string();
+        if time_changed || date_changed {
+            if time_changed {
+                let time_figlet = font::render_figlet_text(&font_time, &time_str);
+                *time_text_update.borrow_mut() = time_figlet.to_string();
+                *last_time_str.borrow_mut() = time_str;
+            }
 
-        drawing_area_clone.queue_draw();
+            if date_changed {
+                let date_figlet = font::render_figlet_text(&font_date, &date_str);
+                *date_text_update.borrow_mut() = date_figlet.to_string();
+                *last_date_str.borrow_mut() = date_str;
+            }
+
+            drawing_area_clone.queue_draw();
+        }
+
         ControlFlow::Continue
     });
 
